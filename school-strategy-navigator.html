@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Strategy Navigator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a3d6e;
+      --primary-light: #2559a7;
+      --secondary: #2e7d32;
+      --accent: #d84315;
+      --bg: #eef2f7;
+      --surface: #ffffff;
+      --border: #cdd6e4;
+      --text: #1a2332;
+      --text-muted: #5d6d80;
+      --shadow: 0 2px 14px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--primary);
+      color: white;
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .app-brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      letter-spacing: -0.2px;
+    }
+
+    /* ── PROGRESS STEPS ── */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .step-dot {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(255,255,255,0.6);
+      transition: all 0.25s;
+      cursor: default;
+    }
+    .step-dot.active { background: white; color: var(--primary); border-color: white; }
+    .step-dot.done   { background: #43a047; border-color: #43a047; color: white; }
+    .step-line {
+      width: 20px; height: 2px;
+      background: rgba(255,255,255,0.25);
+      transition: background 0.25s;
+    }
+    .step-line.done { background: #43a047; }
+
+    /* ── LAYOUT ── */
+    .main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── STEP PANELS ── */
+    .panel { display: none; animation: fadeUp 0.3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    /* ── SECTION HEADER ── */
+    .sec-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 2px solid var(--bg);
+    }
+    .sec-icon {
+      width: 50px; height: 50px;
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.45rem;
+      flex-shrink: 0;
+    }
+    .ico-blue   { background: #dbeafe; }
+    .ico-green  { background: #dcfce7; }
+    .ico-orange { background: #ffedd5; }
+    .ico-purple { background: #f3e8ff; }
+    .sec-title { font-size: 1.45rem; font-weight: 800; color: var(--primary); }
+    .sec-sub   { font-size: 0.87rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── EXPLAINER BOX ── */
+    .explainer {
+      background: #f0f5ff;
+      border: 1px solid #c3d4f4;
+      border-radius: 9px;
+      padding: 15px 20px;
+      margin-bottom: 26px;
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: #2d3e5c;
+    }
+    .explainer strong { color: var(--primary); }
+
+    /* ── FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { margin-bottom: 20px; }
+    label.field-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .field-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      line-height: 1.55;
+    }
+    input[type="text"], input[type="date"], textarea, select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: var(--surface);
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      resize: vertical;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(37,89,167,0.12);
+    }
+    textarea { min-height: 96px; }
+
+    /* ── ZENGER CARDS ── */
+    .z-card {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .z-label {
+      font-size: 1rem; font-weight: 700;
+      color: var(--primary); margin-bottom: 3px;
+    }
+    .z-tagline {
+      font-size: 0.82rem; color: var(--text-muted);
+      font-style: italic; margin-bottom: 10px;
+    }
+    .theory-result {
+      display: none;
+      background: #edf7ed;
+      border-left: 4px solid var(--secondary);
+      border-radius: 0 9px 9px 0;
+      padding: 16px 20px;
+      margin-top: 20px;
+      font-size: 0.9rem;
+      line-height: 1.75;
+      color: #1a3a1e;
+    }
+    .theory-result .tr-label {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--secondary); margin-bottom: 8px;
+    }
+
+    /* ── WMS ── */
+    .wms-domain {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .domain-head {
+      background: #f4f7fb;
+      padding: 13px 18px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .domain-head:hover { background: #e8eef6; }
+    .domain-head-left {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 0.92rem;
+    }
+    .score-badge {
+      background: var(--primary);
+      color: white;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .domain-body { padding: 20px; border-top: 1px solid var(--border); }
+
+    .wms-q { margin-bottom: 26px; }
+    .wms-q:last-child { margin-bottom: 0; }
+    .wms-q-text { font-weight: 600; font-size: 0.88rem; margin-bottom: 11px; color: var(--text); }
+
+    .likert {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .likert input[type="radio"] { display: none; }
+    .likert label {
+      display: block;
+      text-align: center;
+      padding: 10px 4px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-muted);
+      background: white;
+      transition: all 0.18s;
+      margin-bottom: 0;
+    }
+    .likert label:hover { border-color: var(--primary-light); background: #f0f4ff; color: var(--primary); }
+    .likert input:checked + label {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .anchors {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 0.71rem;
+      color: var(--text-muted);
+    }
+    .anchors span:nth-child(2) { text-align: center; }
+
+    .wms-scorecard {
+      display: none;
+      background: #f0f5ff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 18px;
+    }
+    .wms-scorecard h4 {
+      font-size: 0.92rem; font-weight: 700;
+      color: var(--primary); margin-bottom: 14px;
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .score-row-label { width: 185px; font-size: 0.83rem; font-weight: 600; flex-shrink: 0; }
+    .bar-wrap { flex: 1; height: 8px; background: #dde6f5; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .score-row-val { width: 36px; text-align: right; font-size: 0.83rem; font-weight: 700; }
+    .score-row-lvl { width: 100px; font-size: 0.75rem; color: var(--text-muted); }
+
+    /* ── BMC ── */
+    .bmc-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px;
+    }
+    .bmc-cell {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .bmc-cell.vp {
+      border-color: var(--primary);
+      border-width: 2px;
+      background: #f8faff;
+    }
+    .bmc-cell-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .bmc-cell.vp .bmc-cell-title { color: var(--primary); }
+    .bmc-cell-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+    .bmc-cell textarea {
+      border: 1px solid #e4eaf4;
+      padding: 6px 8px;
+      font-size: 0.81rem;
+      min-height: 72px;
+      flex: 1;
+      border-radius: 6px;
+      color: var(--text);
+      resize: none;
+    }
+    .bmc-cell textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(37,89,167,0.1);
+    }
+
+    /* BMC grid positions */
+    .bmc-partners      { grid-column: 1/3;  grid-row: 1/3; }
+    .bmc-activities    { grid-column: 3/5;  grid-row: 1/2; }
+    .bmc-vp            { grid-column: 5/7;  grid-row: 1/3; }
+    .bmc-relationships { grid-column: 7/9;  grid-row: 1/2; }
+    .bmc-segments      { grid-column: 9/11; grid-row: 1/3; }
+    .bmc-resources     { grid-column: 3/5;  grid-row: 2/3; }
+    .bmc-channels      { grid-column: 7/9;  grid-row: 2/3; }
+    .bmc-costs         { grid-column: 1/6;  grid-row: 3/4; }
+    .bmc-revenue       { grid-column: 6/11; grid-row: 3/4; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 11px 26px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 0.18s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn-primary   { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg); }
+    .btn-success   { background: var(--secondary); color: white; }
+    .btn-success:hover { background: #1b5e20; }
+    .btn-outline   { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover { background: #f0f5ff; }
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 28px;
+    }
+
+    /* ── WELCOME ── */
+    .welcome-hero {
+      text-align: center;
+      padding: 12px 0 30px;
+    }
+    .welcome-hero .hero-icon { font-size: 4rem; margin-bottom: 16px; }
+    .welcome-hero h1 {
+      font-size: 2rem; font-weight: 800;
+      color: var(--primary); margin-bottom: 8px;
+    }
+    .welcome-hero p {
+      font-size: 0.97rem; color: var(--text-muted);
+      max-width: 520px; margin: 0 auto 24px; line-height: 1.65;
+    }
+    .framework-chips {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .chip {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      padding: 7px 16px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+      color: var(--text);
+    }
+
+    /* ── SYNTHESIS ── */
+    .syn-school-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--bg);
+    }
+    .syn-school-name { font-size: 1.7rem; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
+    .syn-school-meta { font-size: 0.88rem; color: var(--text-muted); }
+    .syn-overall-score { text-align: right; }
+    .syn-overall-label {
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin-bottom: 3px;
+    }
+    .syn-score-big { font-size: 2.2rem; font-weight: 800; }
+    .syn-score-denom { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+
+    .syn-section { margin-bottom: 28px; }
+    .syn-section h3 {
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--primary);
+      padding-bottom: 9px;
+      border-bottom: 2px solid #e4eaf4;
+      margin-bottom: 14px;
+    }
+    .insight-block {
+      background: #f6f8fb;
+      border-radius: 8px;
+      padding: 13px 17px;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+    .insight-lbl {
+      font-size: 0.73rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .priority-card {
+      border-left: 4px solid var(--accent);
+      background: #fff8f5;
+      border-radius: 0 9px 9px 0;
+      padding: 13px 17px;
+      margin-bottom: 10px;
+    }
+    .priority-label {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .priority-card p { font-size: 0.88rem; line-height: 1.65; }
+
+    .good-card {
+      border-left: 4px solid var(--secondary);
+      background: #f0faf2;
+      border-radius: 0 9px 9px 0;
+      padding: 13px 17px;
+    }
+    .good-card p { font-size: 0.88rem; line-height: 1.65; color: #1a3a1e; }
+
+    .chart-wrap { max-width: 340px; margin: 0 auto; }
+
+    .bmc-summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .bmc-summary-item {
+      background: #f6f8fb;
+      border-radius: 8px;
+      padding: 12px 15px;
+    }
+    .bmc-summary-item .bsi-label {
+      font-size: 0.73rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .bmc-summary-item .bsi-text { font-size: 0.85rem; line-height: 1.6; color: var(--text); }
+
+    .empty-note { font-size: 0.87rem; color: var(--text-muted); font-style: italic; }
+
+    .completeness-badge {
+      display: inline-flex;
+      align-items: center; gap: 7px;
+      background: #f0f4ff;
+      border-radius: 20px;
+      padding: 5px 13px;
+      font-size: 0.83rem;
+      margin-bottom: 14px;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      .app-header, .nav-row, .no-print { display: none !important; }
+      .panel { display: none !important; }
+      #panel-4 { display: block !important; }
+      body { background: white; }
+      .card { box-shadow: none; border: 1px solid #ddd; }
+      .main { padding: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .progress-bar { display: none; }
+      .bmc-grid { grid-template-columns: 1fr; }
+      .bmc-partners, .bmc-activities, .bmc-vp, .bmc-relationships,
+      .bmc-segments, .bmc-resources, .bmc-channels, .bmc-costs, .bmc-revenue {
+        grid-column: auto; grid-row: auto;
+      }
+      .bmc-summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="app-brand">🎓 School Strategy Navigator</div>
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ===== STEP 0: WELCOME ===== -->
+  <div class="panel active" id="panel-0">
+    <div class="card">
+      <div class="welcome-hero">
+        <div class="hero-icon">🎯</div>
+        <h1>School Strategy Navigator</h1>
+        <p>A structured tool for school leaders to analyse, articulate, and strengthen their school's strategy — using three complementary frameworks.</p>
+        <div class="framework-chips">
+          <div class="chip">🔍 Zenger's Strategic Theory</div>
+          <div class="chip">📊 World Management Survey</div>
+          <div class="chip">🧩 Business Model Canvas</div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <strong>How it works:</strong> You'll work through three frameworks sequentially. Each illuminates a different dimension of your school's strategy — what makes it distinctive (Zenger), how well it is managed (WMS), and how it creates and sustains value (BMC). At the end, you receive a synthesised strategic profile with priority recommendations. Allow 30–45 minutes for a thoughtful assessment.
+      </div>
+
+      <div style="max-width: 520px; margin: 0 auto;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label" for="schoolName">School Name</label>
+            <input type="text" id="schoolName" placeholder="e.g. Oakwood Academy">
+          </div>
+          <div class="form-group">
+            <label class="field-label" for="leaderName">Your Name & Role</label>
+            <input type="text" id="leaderName" placeholder="e.g. Jane Smith, Principal">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="sessionDate">Date of Assessment</label>
+          <input type="date" id="sessionDate">
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <div></div>
+        <button class="btn btn-primary" onclick="goTo(1)">Begin Assessment →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 1: ZENGER ===== -->
+  <div class="panel" id="panel-1">
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon ico-blue">🔍</div>
+        <div>
+          <div class="sec-title">Zenger's Strategic Theory</div>
+          <div class="sec-sub">Framework 1 of 3 · Strategic Identity</div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        Todd Zenger argues that lasting value comes from a coherent <strong>corporate theory</strong> — a unified logic connecting your unique assets to real value creation. Rather than chasing tactics, this framework asks: <em>what is the underlying theory that makes your school distinctively valuable?</em><br><br>
+        Reflect on each of the three dimensions below. These questions are about articulating what you already intuitively know. There are no wrong answers.
+      </div>
+
+      <div class="z-card">
+        <div class="z-label">🔍 Insight — Your Unique Assets</div>
+        <div class="z-tagline">"What do we uniquely have, know, or do that others cannot easily replicate?"</div>
+        <div class="field-hint">Consider: distinctive teaching approaches, faculty expertise and culture, community trust and relationships, physical or digital assets, intellectual methods, student community, historical track record.</div>
+        <textarea id="z-insight" placeholder="e.g. We have a 20-year track record in project-based learning, a faculty with an average tenure of 12 years, and deep trust with local employers who co-design our curriculum. Our school culture of high expectations combined with genuine care is visible in our alumni outcomes and low staff turnover..."></textarea>
+      </div>
+
+      <div class="z-card">
+        <div class="z-label">🔭 Foresight — Anticipating the Future</div>
+        <div class="z-tagline">"What trends do we see coming that others may be underestimating?"</div>
+        <div class="field-hint">Consider: shifts in what students need to be career or life-ready, demographic changes, family expectations, technology in learning, policy changes, community evolution, changes in competition for students or staff.</div>
+        <textarea id="z-foresight" placeholder="e.g. We anticipate growing demand for social-emotional development alongside academic achievement. Our community is seeing growth in multilingual families who value both cultural preservation and integration. The skills students need for employment are changing faster than traditional curricula can adapt..."></textarea>
+      </div>
+
+      <div class="z-card">
+        <div class="z-label">🔗 Cross-Sight — Connecting the Dots</div>
+        <div class="z-tagline">"How do our assets combine to create value greater than their individual parts?"</div>
+        <div class="field-hint">Consider: complementarities between your capabilities, how resources reinforce each other, what unique combinations you have built that competitors couldn't easily replicate, the 'flywheel' effects in your model.</div>
+        <textarea id="z-crosssight" placeholder="e.g. Our experienced faculty and PBL methodology make us the natural partner for local employers — which attracts students who value real-world experience — which attracts more employer partners. Each element strengthens the others over time. No school starting from scratch could replicate this quickly..."></textarea>
+      </div>
+
+      <div style="text-align: center; margin-top: 6px;">
+        <button class="btn btn-outline no-print" onclick="genTheory()">✨ Generate Strategic Theory Statement</button>
+      </div>
+
+      <div class="theory-result" id="theoryResult">
+        <div class="tr-label">Your Strategic Theory Statement</div>
+        <div id="theoryText"></div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(2)">Next: Management Survey →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: WMS ===== -->
+  <div class="panel" id="panel-2">
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon ico-green">📊</div>
+        <div>
+          <div class="sec-title">World Management Survey — Education</div>
+          <div class="sec-sub">Framework 2 of 3 · Management Practices</div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        The <strong>World Management Survey</strong> (Bloom et al.) measures management practices in schools across four domains. Each practice is scored <strong>1–5</strong>: from informal/weak (1) through developing (2–3) to best practice (5). Research consistently shows that stronger management practices correlate with better student outcomes. Be honest — this assessment is for your strategic benefit, not external evaluation.
+      </div>
+
+      <!-- Domain A: Operations -->
+      <div class="wms-domain">
+        <div class="domain-head" onclick="toggleDomain('A')">
+          <div class="domain-head-left">
+            ⚙️ Operations Management
+            <span class="score-badge" id="badge-A">–/5</span>
+          </div>
+          <span id="arrow-A">▼</span>
+        </div>
+        <div class="domain-body" id="body-A">
+
+          <div class="wms-q">
+            <div class="wms-q-text">1. Best Practice Adoption: Does your school systematically identify and adopt effective teaching and administrative practices?</div>
+            <div class="likert">
+              <div><input type="radio" name="A1" id="A1-1" value="1" onchange="refreshWMS()"><label for="A1-1">1</label></div>
+              <div><input type="radio" name="A1" id="A1-2" value="2" onchange="refreshWMS()"><label for="A1-2">2</label></div>
+              <div><input type="radio" name="A1" id="A1-3" value="3" onchange="refreshWMS()"><label for="A1-3">3</label></div>
+              <div><input type="radio" name="A1" id="A1-4" value="4" onchange="refreshWMS()"><label for="A1-4">4</label></div>
+              <div><input type="radio" name="A1" id="A1-5" value="5" onchange="refreshWMS()"><label for="A1-5">5</label></div>
+            </div>
+            <div class="anchors"><span>No systematic approach</span><span>Some practices documented</span><span>Actively identified &amp; adopted</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">2. Process Improvement: Does your school actively identify and address inefficiencies in teaching and administrative processes?</div>
+            <div class="likert">
+              <div><input type="radio" name="A2" id="A2-1" value="1" onchange="refreshWMS()"><label for="A2-1">1</label></div>
+              <div><input type="radio" name="A2" id="A2-2" value="2" onchange="refreshWMS()"><label for="A2-2">2</label></div>
+              <div><input type="radio" name="A2" id="A2-3" value="3" onchange="refreshWMS()"><label for="A2-3">3</label></div>
+              <div><input type="radio" name="A2" id="A2-4" value="4" onchange="refreshWMS()"><label for="A2-4">4</label></div>
+              <div><input type="radio" name="A2" id="A2-5" value="5" onchange="refreshWMS()"><label for="A2-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Only when crises occur</span><span>Some periodic reviews</span><span>Continuous improvement culture</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">3. Standardisation: Are key processes (lesson planning, assessment, communication with families) standardised and consistently applied across the school?</div>
+            <div class="likert">
+              <div><input type="radio" name="A3" id="A3-1" value="1" onchange="refreshWMS()"><label for="A3-1">1</label></div>
+              <div><input type="radio" name="A3" id="A3-2" value="2" onchange="refreshWMS()"><label for="A3-2">2</label></div>
+              <div><input type="radio" name="A3" id="A3-3" value="3" onchange="refreshWMS()"><label for="A3-3">3</label></div>
+              <div><input type="radio" name="A3" id="A3-4" value="4" onchange="refreshWMS()"><label for="A3-4">4</label></div>
+              <div><input type="radio" name="A3" id="A3-5" value="5" onchange="refreshWMS()"><label for="A3-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Each teacher works independently</span><span>Some shared frameworks</span><span>Consistent standards school-wide</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Domain B: Performance Monitoring -->
+      <div class="wms-domain">
+        <div class="domain-head" onclick="toggleDomain('B')">
+          <div class="domain-head-left">
+            📈 Performance Monitoring
+            <span class="score-badge" id="badge-B">–/5</span>
+          </div>
+          <span id="arrow-B">▼</span>
+        </div>
+        <div class="domain-body" id="body-B">
+
+          <div class="wms-q">
+            <div class="wms-q-text">4. Student Outcome Tracking: Are student learning outcomes systematically monitored across all classes and year groups?</div>
+            <div class="likert">
+              <div><input type="radio" name="B1" id="B1-1" value="1" onchange="refreshWMS()"><label for="B1-1">1</label></div>
+              <div><input type="radio" name="B1" id="B1-2" value="2" onchange="refreshWMS()"><label for="B1-2">2</label></div>
+              <div><input type="radio" name="B1" id="B1-3" value="3" onchange="refreshWMS()"><label for="B1-3">3</label></div>
+              <div><input type="radio" name="B1" id="B1-4" value="4" onchange="refreshWMS()"><label for="B1-4">4</label></div>
+              <div><input type="radio" name="B1" id="B1-5" value="5" onchange="refreshWMS()"><label for="B1-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Ad hoc, no systematic tracking</span><span>Data collected, rarely analysed</span><span>Comprehensive continuous tracking</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">5. Data-Driven Decisions: Is student and school performance data actively used to make instructional and leadership decisions?</div>
+            <div class="likert">
+              <div><input type="radio" name="B2" id="B2-1" value="1" onchange="refreshWMS()"><label for="B2-1">1</label></div>
+              <div><input type="radio" name="B2" id="B2-2" value="2" onchange="refreshWMS()"><label for="B2-2">2</label></div>
+              <div><input type="radio" name="B2" id="B2-3" value="3" onchange="refreshWMS()"><label for="B2-3">3</label></div>
+              <div><input type="radio" name="B2" id="B2-4" value="4" onchange="refreshWMS()"><label for="B2-4">4</label></div>
+              <div><input type="radio" name="B2" id="B2-5" value="5" onchange="refreshWMS()"><label for="B2-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Intuition-based decisions</span><span>Data reviewed periodically</span><span>Data drives decisions at all levels</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">6. Teacher Performance Review: Is there a structured, fair system for observing and evaluating teacher performance with actionable feedback?</div>
+            <div class="likert">
+              <div><input type="radio" name="B3" id="B3-1" value="1" onchange="refreshWMS()"><label for="B3-1">1</label></div>
+              <div><input type="radio" name="B3" id="B3-2" value="2" onchange="refreshWMS()"><label for="B3-2">2</label></div>
+              <div><input type="radio" name="B3" id="B3-3" value="3" onchange="refreshWMS()"><label for="B3-3">3</label></div>
+              <div><input type="radio" name="B3" id="B3-4" value="4" onchange="refreshWMS()"><label for="B3-4">4</label></div>
+              <div><input type="radio" name="B3" id="B3-5" value="5" onchange="refreshWMS()"><label for="B3-5">5</label></div>
+            </div>
+            <div class="anchors"><span>No formal evaluation</span><span>Annual review, limited depth</span><span>Regular structured observations</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Domain C: Target Setting -->
+      <div class="wms-domain">
+        <div class="domain-head" onclick="toggleDomain('C')">
+          <div class="domain-head-left">
+            🎯 Target Setting
+            <span class="score-badge" id="badge-C">–/5</span>
+          </div>
+          <span id="arrow-C">▼</span>
+        </div>
+        <div class="domain-body" id="body-C">
+
+          <div class="wms-q">
+            <div class="wms-q-text">7. Goal Clarity: Are school-wide academic and improvement goals clearly defined, measurable, and communicated to all staff?</div>
+            <div class="likert">
+              <div><input type="radio" name="C1" id="C1-1" value="1" onchange="refreshWMS()"><label for="C1-1">1</label></div>
+              <div><input type="radio" name="C1" id="C1-2" value="2" onchange="refreshWMS()"><label for="C1-2">2</label></div>
+              <div><input type="radio" name="C1" id="C1-3" value="3" onchange="refreshWMS()"><label for="C1-3">3</label></div>
+              <div><input type="radio" name="C1" id="C1-4" value="4" onchange="refreshWMS()"><label for="C1-4">4</label></div>
+              <div><input type="radio" name="C1" id="C1-5" value="5" onchange="refreshWMS()"><label for="C1-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Goals vague or unstated</span><span>Goals exist but poorly communicated</span><span>Clear goals, understood by all staff</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">8. Goal Alignment: Are individual teacher and department goals explicitly aligned with the school's overall strategic objectives?</div>
+            <div class="likert">
+              <div><input type="radio" name="C2" id="C2-1" value="1" onchange="refreshWMS()"><label for="C2-1">1</label></div>
+              <div><input type="radio" name="C2" id="C2-2" value="2" onchange="refreshWMS()"><label for="C2-2">2</label></div>
+              <div><input type="radio" name="C2" id="C2-3" value="3" onchange="refreshWMS()"><label for="C2-3">3</label></div>
+              <div><input type="radio" name="C2" id="C2-4" value="4" onchange="refreshWMS()"><label for="C2-4">4</label></div>
+              <div><input type="radio" name="C2" id="C2-5" value="5" onchange="refreshWMS()"><label for="C2-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Individual goals set independently</span><span>Partial alignment</span><span>Full, visible alignment throughout</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">9. Review &amp; Adaptation: Are goals regularly reviewed and adjusted based on performance data throughout the year?</div>
+            <div class="likert">
+              <div><input type="radio" name="C3" id="C3-1" value="1" onchange="refreshWMS()"><label for="C3-1">1</label></div>
+              <div><input type="radio" name="C3" id="C3-2" value="2" onchange="refreshWMS()"><label for="C3-2">2</label></div>
+              <div><input type="radio" name="C3" id="C3-3" value="3" onchange="refreshWMS()"><label for="C3-3">3</label></div>
+              <div><input type="radio" name="C3" id="C3-4" value="4" onchange="refreshWMS()"><label for="C3-4">4</label></div>
+              <div><input type="radio" name="C3" id="C3-5" value="5" onchange="refreshWMS()"><label for="C3-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Set annually, rarely revisited</span><span>Some mid-year review</span><span>Regular cycles, active adaptation</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Domain D: Talent Management -->
+      <div class="wms-domain">
+        <div class="domain-head" onclick="toggleDomain('D')">
+          <div class="domain-head-left">
+            👥 Talent Management
+            <span class="score-badge" id="badge-D">–/5</span>
+          </div>
+          <span id="arrow-D">▼</span>
+        </div>
+        <div class="domain-body" id="body-D">
+
+          <div class="wms-q">
+            <div class="wms-q-text">10. Hiring Quality: Is your school highly selective in hiring, with structured processes to identify the best candidates?</div>
+            <div class="likert">
+              <div><input type="radio" name="D1" id="D1-1" value="1" onchange="refreshWMS()"><label for="D1-1">1</label></div>
+              <div><input type="radio" name="D1" id="D1-2" value="2" onchange="refreshWMS()"><label for="D1-2">2</label></div>
+              <div><input type="radio" name="D1" id="D1-3" value="3" onchange="refreshWMS()"><label for="D1-3">3</label></div>
+              <div><input type="radio" name="D1" id="D1-4" value="4" onchange="refreshWMS()"><label for="D1-4">4</label></div>
+              <div><input type="radio" name="D1" id="D1-5" value="5" onchange="refreshWMS()"><label for="D1-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Hire based on availability</span><span>Some structured interviews</span><span>Rigorous, selective process</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">11. Professional Development: Are development opportunities systematically planned and delivered based on individual teacher and school-wide needs?</div>
+            <div class="likert">
+              <div><input type="radio" name="D2" id="D2-1" value="1" onchange="refreshWMS()"><label for="D2-1">1</label></div>
+              <div><input type="radio" name="D2" id="D2-2" value="2" onchange="refreshWMS()"><label for="D2-2">2</label></div>
+              <div><input type="radio" name="D2" id="D2-3" value="3" onchange="refreshWMS()"><label for="D2-3">3</label></div>
+              <div><input type="radio" name="D2" id="D2-4" value="4" onchange="refreshWMS()"><label for="D2-4">4</label></div>
+              <div><input type="radio" name="D2" id="D2-5" value="5" onchange="refreshWMS()"><label for="D2-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Ad hoc or compliance-driven</span><span>Offered but not well-targeted</span><span>Comprehensive, aligned, evaluated</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">12. Recognising Excellence: Are high-performing teachers actively recognised and supported to grow in their roles and careers?</div>
+            <div class="likert">
+              <div><input type="radio" name="D3" id="D3-1" value="1" onchange="refreshWMS()"><label for="D3-1">1</label></div>
+              <div><input type="radio" name="D3" id="D3-2" value="2" onchange="refreshWMS()"><label for="D3-2">2</label></div>
+              <div><input type="radio" name="D3" id="D3-3" value="3" onchange="refreshWMS()"><label for="D3-3">3</label></div>
+              <div><input type="radio" name="D3" id="D3-4" value="4" onchange="refreshWMS()"><label for="D3-4">4</label></div>
+              <div><input type="radio" name="D3" id="D3-5" value="5" onchange="refreshWMS()"><label for="D3-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Little differentiation</span><span>Some informal recognition</span><span>Systematic, with growth pathways</span></div>
+          </div>
+
+          <div class="wms-q">
+            <div class="wms-q-text">13. Managing Underperformance: Are underperforming teachers actively supported to improve, with clear expectations and consequences if improvement is not achieved?</div>
+            <div class="likert">
+              <div><input type="radio" name="D4" id="D4-1" value="1" onchange="refreshWMS()"><label for="D4-1">1</label></div>
+              <div><input type="radio" name="D4" id="D4-2" value="2" onchange="refreshWMS()"><label for="D4-2">2</label></div>
+              <div><input type="radio" name="D4" id="D4-3" value="3" onchange="refreshWMS()"><label for="D4-3">3</label></div>
+              <div><input type="radio" name="D4" id="D4-4" value="4" onchange="refreshWMS()"><label for="D4-4">4</label></div>
+              <div><input type="radio" name="D4" id="D4-5" value="5" onchange="refreshWMS()"><label for="D4-5">5</label></div>
+            </div>
+            <div class="anchors"><span>Underperformance largely ignored</span><span>Addressed informally</span><span>Structured support, clear consequences</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- WMS Scorecard -->
+      <div class="wms-scorecard" id="wmsScorecard">
+        <h4>Management Score Summary</h4>
+        <div id="wmsDomainRows"></div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(3)">Next: Business Model Canvas →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: BMC ===== -->
+  <div class="panel" id="panel-3">
+    <div class="card">
+      <div class="sec-head">
+        <div class="sec-icon ico-orange">🧩</div>
+        <div>
+          <div class="sec-title">Business Model Canvas</div>
+          <div class="sec-sub">Framework 3 of 3 · Value Creation System</div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        The <strong>Business Model Canvas</strong> (Osterwalder &amp; Pigneur) maps the nine interconnected elements of how your school creates and sustains educational value. Fill in each block thoughtfully — even rough notes are useful. Think of this as describing <em>how your school works as a system</em>, not just as a classroom.
+      </div>
+
+      <div class="bmc-grid">
+
+        <!-- Key Partners -->
+        <div class="bmc-cell bmc-partners">
+          <div class="bmc-cell-title">🤝 Key Partners</div>
+          <div class="bmc-cell-hint">Universities, employers, community orgs, government bodies, other schools</div>
+          <textarea id="bmc-partners" placeholder="Who are your most important external partners? What do they contribute? What would you lose without them?"></textarea>
+        </div>
+
+        <!-- Key Activities -->
+        <div class="bmc-cell bmc-activities">
+          <div class="bmc-cell-title">⚡ Key Activities</div>
+          <div class="bmc-cell-hint">What we do to deliver value</div>
+          <textarea id="bmc-activities" placeholder="e.g. Teaching & curriculum delivery, assessment, CPD, family engagement, community partnerships..."></textarea>
+        </div>
+
+        <!-- Value Proposition -->
+        <div class="bmc-cell bmc-vp vp">
+          <div class="bmc-cell-title">💡 Value Proposition</div>
+          <div class="bmc-cell-hint">The core educational value you deliver — your reason for existing</div>
+          <textarea id="bmc-value" placeholder="What distinctive value do you deliver to students and families? What educational problem do you solve? What makes your school worth choosing over alternatives?"></textarea>
+        </div>
+
+        <!-- Customer Relationships -->
+        <div class="bmc-cell bmc-relationships">
+          <div class="bmc-cell-title">💬 Relationships</div>
+          <div class="bmc-cell-hint">How we engage families &amp; students</div>
+          <textarea id="bmc-relationships" placeholder="e.g. Advisory systems, parent conferences, community events, mentoring, alumni network..."></textarea>
+        </div>
+
+        <!-- Customer Segments -->
+        <div class="bmc-cell bmc-segments">
+          <div class="bmc-cell-title">👨‍👩‍👧 Student &amp; Family Segments</div>
+          <div class="bmc-cell-hint">Who you primarily exist to serve</div>
+          <textarea id="bmc-segments" placeholder="Who are your students and families? What are their key characteristics, aspirations, and needs? Are there distinct groups?"></textarea>
+        </div>
+
+        <!-- Key Resources -->
+        <div class="bmc-cell bmc-resources">
+          <div class="bmc-cell-title">🏗️ Key Resources</div>
+          <div class="bmc-cell-hint">What we must have to operate</div>
+          <textarea id="bmc-resources" placeholder="e.g. Experienced faculty, physical facilities, technology infrastructure, curriculum IP, brand reputation, community relationships..."></textarea>
+        </div>
+
+        <!-- Channels -->
+        <div class="bmc-cell bmc-channels">
+          <div class="bmc-cell-title">📣 Channels</div>
+          <div class="bmc-cell-hint">How families find &amp; experience us</div>
+          <textarea id="bmc-channels" placeholder="e.g. Word of mouth, open days, website, social media, community events, feeder schools, education fairs..."></textarea>
+        </div>
+
+        <!-- Cost Structure -->
+        <div class="bmc-cell bmc-costs">
+          <div class="bmc-cell-title">💰 Cost Structure</div>
+          <div class="bmc-cell-hint">What drives your costs</div>
+          <textarea id="bmc-costs" placeholder="e.g. Staffing (typically 65–75%), facilities, technology, curriculum development, professional development, administration..."></textarea>
+        </div>
+
+        <!-- Revenue Streams -->
+        <div class="bmc-cell bmc-revenue">
+          <div class="bmc-cell-title">💵 Revenue &amp; Funding Streams</div>
+          <div class="bmc-cell-hint">How the school is funded</div>
+          <textarea id="bmc-revenue" placeholder="e.g. Government per-pupil funding, tuition fees, grants, donations, endowment income, enterprise activities, partnerships..."></textarea>
+        </div>
+
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goTo(2)">← Back</button>
+        <button class="btn btn-success" onclick="goTo(4)">Generate Strategic Profile →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: SYNTHESIS ===== -->
+  <div class="panel" id="panel-4">
+    <div class="card" id="synthesisCard">
+      <p class="empty-note">Generating your strategic profile...</p>
+    </div>
+    <div class="nav-row no-print">
+      <button class="btn btn-secondary" onclick="goTo(3)">← Back</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+/* ================================================================
+   STATE & CONFIG
+================================================================ */
+let currentStep = 0;
+let radarChart = null;
+
+const STEPS = ['Welcome', 'Strategic Theory', 'Management Survey', 'Business Model', 'Strategic Profile'];
+
+const WMS = {
+  A: { name: 'Operations Management',   qs: ['A1','A2','A3'] },
+  B: { name: 'Performance Monitoring',  qs: ['B1','B2','B3'] },
+  C: { name: 'Target Setting',          qs: ['C1','C2','C3'] },
+  D: { name: 'Talent Management',       qs: ['D1','D2','D3','D4'] }
+};
+
+/* ================================================================
+   NAVIGATION
+================================================================ */
+function goTo(n) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + n).classList.add('active');
+  currentStep = n;
+  renderProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 4) buildSynthesis();
+}
+
+function renderProgress() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  STEPS.forEach((name, i) => {
+    if (i > 0) {
+      const line = document.createElement('div');
+      line.className = 'step-line' + (i <= currentStep ? ' done' : '');
+      bar.appendChild(line);
+    }
+    const dot = document.createElement('div');
+    dot.className = 'step-dot' + (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+    dot.title = name;
+    dot.textContent = i < currentStep ? '✓' : String(i + 1);
+    bar.appendChild(dot);
+  });
+}
+
+/* ================================================================
+   ZENGER
+================================================================ */
+function genTheory() {
+  const insight    = (document.getElementById('z-insight').value || '').trim();
+  const foresight  = (document.getElementById('z-foresight').value || '').trim();
+  const crosssight = (document.getElementById('z-crosssight').value || '').trim();
+
+  if (!insight && !foresight && !crosssight) {
+    alert('Please fill in at least one Zenger field first.');
+    return;
+  }
+
+  let html = '';
+  if (insight)    html += '<p><strong>Insight:</strong> ' + esc(insight) + (insight.endsWith('.') ? '' : '.') + ' </p>';
+  if (foresight)  html += '<p style="margin-top:8px"><strong>Foresight:</strong> ' + esc(foresight) + (foresight.endsWith('.') ? '' : '.') + ' </p>';
+  if (crosssight) html += '<p style="margin-top:8px"><strong>Cross-Sight:</strong> ' + esc(crosssight) + (crosssight.endsWith('.') ? '' : '.') + '</p>';
+
+  document.getElementById('theoryText').innerHTML = html;
+  document.getElementById('theoryResult').style.display = 'block';
+}
+
+/* ================================================================
+   WMS
+================================================================ */
+function getQ(name) {
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? parseInt(el.value) : null;
+}
+
+function domainScore(key) {
+  const vals = WMS[key].qs.map(q => getQ(q)).filter(v => v !== null);
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(2);
+}
+
+function overallScore() {
+  const scores = Object.keys(WMS).map(k => domainScore(k)).filter(v => v !== null);
+  if (!scores.length) return null;
+  return +(scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(2);
+}
+
+function scoreMeta(s) {
+  if (s < 2)   return { label: 'Needs Attention', color: '#e53935', barClass: 'bar-red' };
+  if (s < 2.5) return { label: 'Early Stage',     color: '#f4511e', barClass: 'bar-orange' };
+  if (s < 3.5) return { label: 'Developing',      color: '#f9a825', barClass: 'bar-yellow' };
+  if (s < 4.5) return { label: 'Advanced',        color: '#7cb342', barClass: 'bar-lgreen' };
+  return             { label: 'Best Practice',    color: '#2e7d32', barClass: 'bar-green' };
+}
+
+function barColor(s) {
+  if (s < 2)   return '#ef5350';
+  if (s < 2.5) return '#ff7043';
+  if (s < 3.5) return '#fdd835';
+  if (s < 4.5) return '#aed581';
+  return '#43a047';
+}
+
+function refreshWMS() {
+  // Update badges
+  Object.keys(WMS).forEach(k => {
+    const s = domainScore(k);
+    const badge = document.getElementById('badge-' + k);
+    if (badge) badge.textContent = s !== null ? s.toFixed(1) + '/5' : '–/5';
+  });
+
+  // Update scorecard
+  const card = document.getElementById('wmsScorecard');
+  const rows = document.getElementById('wmsDomainRows');
+  const hasAny = Object.keys(WMS).some(k => domainScore(k) !== null);
+  card.style.display = hasAny ? 'block' : 'none';
+  if (!hasAny) return;
+
+  rows.innerHTML = '';
+  Object.keys(WMS).forEach(k => {
+    const s = domainScore(k);
+    if (s === null) return;
+    const m = scoreMeta(s);
+    const pct = (s / 5 * 100).toFixed(0);
+    rows.innerHTML += `
+      <div class="score-row">
+        <div class="score-row-label">${WMS[k].name}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${barColor(s)}"></div></div>
+        <div class="score-row-val">${s.toFixed(1)}</div>
+        <div class="score-row-lvl">${m.label}</div>
+      </div>`;
+  });
+}
+
+function toggleDomain(key) {
+  const body  = document.getElementById('body-' + key);
+  const arrow = document.getElementById('arrow-' + key);
+  const hidden = body.style.display === 'none';
+  body.style.display  = hidden ? 'block' : 'none';
+  arrow.textContent   = hidden ? '▼' : '▶';
+}
+
+/* ================================================================
+   SYNTHESIS
+================================================================ */
+function buildSynthesis() {
+  const school  = val('schoolName')  || 'Your School';
+  const leader  = val('leaderName')  || '';
+  const date    = val('sessionDate') || '';
+
+  const insight    = val('z-insight');
+  const foresight  = val('z-foresight');
+  const crosssight = val('z-crosssight');
+
+  const bmc = {
+    value:         val('bmc-value'),
+    segments:      val('bmc-segments'),
+    channels:      val('bmc-channels'),
+    relationships: val('bmc-relationships'),
+    revenue:       val('bmc-revenue'),
+    activities:    val('bmc-activities'),
+    resources:     val('bmc-resources'),
+    partners:      val('bmc-partners'),
+    costs:         val('bmc-costs')
+  };
+
+  const scores = {};
+  Object.keys(WMS).forEach(k => { scores[k] = domainScore(k); });
+  const overall = overallScore();
+
+  const bmcFilled = Object.values(bmc).filter(v => v && v.length > 15).length;
+
+  // ---- Strategic priorities ----
+  const priorities = [];
+
+  Object.keys(WMS).forEach(k => {
+    const s = scores[k];
+    if (s !== null && s < 3) {
+      let reco = '';
+      if (k === 'A') reco = 'Strengthen operational foundations by documenting effective practices, creating shared processes, and building a culture of continuous improvement. Many schools benefit from starting with one or two high-leverage processes (e.g. lesson planning, assessment workflow) before scaling.';
+      if (k === 'B') reco = 'Build a data-informed culture by establishing systematic tracking of student outcomes, introducing regular teacher observation cycles, and ensuring that performance data is regularly discussed at leadership and department level — and actually drives decisions.';
+      if (k === 'C') reco = 'Clarify and cascade strategic goals: ensure school-wide objectives are measurable, communicated clearly to all staff, and that individual and team goals are explicitly connected to them. Introduce regular review cycles — quarterly at minimum — with genuine adaptation based on what the data shows.';
+      if (k === 'D') reco = 'Invest in talent management systems: from more selective and structured hiring to targeted professional development plans and meaningful recognition of excellence. Equally important is addressing underperformance earlier and more systematically — both to support individuals and to protect the quality of the overall team.';
+      priorities.push({ domain: WMS[k].name, score: s, reco });
+    }
+  });
+
+  if (!bmc.value || bmc.value.length < 40)
+    priorities.push({ domain: 'Value Proposition', score: null, reco: 'Your Value Proposition block appears underdeveloped. Sharpening your core educational proposition — what distinctive value you deliver and for whom — is foundational to every other strategic decision your school makes.' });
+
+  if (!bmc.revenue || bmc.revenue.length < 25)
+    priorities.push({ domain: 'Funding Model', score: null, reco: 'Your funding model requires further mapping. Understanding the diversity, stability, and strategic alignment of your revenue streams is essential to long-term sustainability — especially as funding landscapes continue to shift.' });
+
+  if (!bmc.partners || bmc.partners.length < 20)
+    priorities.push({ domain: 'Strategic Partnerships', score: null, reco: 'Consider mapping your key external partnerships more deliberately. Strategic partnerships — with employers, universities, community organisations, or other schools — can unlock capabilities and resources that would be costly to build internally.' });
+
+  // ---- BUILD HTML ----
+  let html = `
+    <div class="syn-school-header">
+      <div>
+        <div class="syn-school-name">${esc(school)}</div>
+        <div class="syn-school-meta">${esc(leader)}${leader && date ? ' · ' : ''}${fmtDate(date)}</div>
+      </div>
+      ${overall !== null ? `
+      <div class="syn-overall-score">
+        <div class="syn-overall-label">Overall Management Score</div>
+        <div class="syn-score-big" style="color:${scoreMeta(overall).color}">${overall.toFixed(1)}<span class="syn-score-denom">/5</span></div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">${scoreMeta(overall).label}</div>
+      </div>` : ''}
+    </div>
+
+    <!-- ZENGER -->
+    <div class="syn-section">
+      <h3>🔍 Strategic Theory (Zenger)</h3>
+      ${insight || foresight || crosssight ? `
+        ${insight    ? `<div class="insight-block"><div class="insight-lbl">Unique Assets &amp; Insight</div>${esc(insight)}</div>` : ''}
+        ${foresight  ? `<div class="insight-block"><div class="insight-lbl">Strategic Foresight</div>${esc(foresight)}</div>` : ''}
+        ${crosssight ? `<div class="insight-block"><div class="insight-lbl">Strategic Complementarities</div>${esc(crosssight)}</div>` : ''}
+      ` : '<p class="empty-note">Zenger fields not completed.</p>'}
+    </div>
+
+    <!-- WMS -->
+    <div class="syn-section">
+      <h3>📊 Management Performance (WMS-Education)</h3>
+      ${Object.values(scores).every(s => s === null) ? '<p class="empty-note">Management Survey not completed.</p>' : `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div>
+            ${Object.keys(WMS).map(k => {
+              const s = scores[k];
+              if (s === null) return '';
+              const pct = (s/5*100).toFixed(0);
+              return `<div class="score-row">
+                <div class="score-row-label" style="font-size:0.82rem">${WMS[k].name}</div>
+                <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${barColor(s)}"></div></div>
+                <div class="score-row-val">${s.toFixed(1)}</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="chart-wrap"><canvas id="radarCanvas"></canvas></div>
+        </div>
+      `}
+    </div>
+
+    <!-- BMC -->
+    <div class="syn-section">
+      <h3>🧩 Business Model (Canvas)</h3>
+      <div class="completeness-badge">
+        <span style="font-weight:700;color:var(--primary)">${bmcFilled}/9 blocks completed</span>
+        <span style="color:var(--text-muted)">${bmcFilled === 9 ? '✅' : bmcFilled >= 6 ? '⚠️ Mostly complete' : '🔴 Incomplete'}</span>
+      </div>
+      <div class="bmc-summary-grid">
+        ${bmc.value      ? `<div class="bmc-summary-item" style="grid-column:1/-1"><div class="bsi-label">💡 Value Proposition</div><div class="bsi-text">${esc(bmc.value)}</div></div>` : ''}
+        ${bmc.segments   ? `<div class="bmc-summary-item"><div class="bsi-label">👨‍👩‍👧 Student &amp; Family Segments</div><div class="bsi-text">${esc(bmc.segments)}</div></div>` : ''}
+        ${bmc.activities ? `<div class="bmc-summary-item"><div class="bsi-label">⚡ Key Activities</div><div class="bsi-text">${esc(bmc.activities)}</div></div>` : ''}
+        ${bmc.resources  ? `<div class="bmc-summary-item"><div class="bsi-label">🏗️ Key Resources</div><div class="bsi-text">${esc(bmc.resources)}</div></div>` : ''}
+        ${bmc.partners   ? `<div class="bmc-summary-item"><div class="bsi-label">🤝 Key Partners</div><div class="bsi-text">${esc(bmc.partners)}</div></div>` : ''}
+        ${bmc.revenue    ? `<div class="bmc-summary-item"><div class="bsi-label">💵 Funding &amp; Revenue</div><div class="bsi-text">${esc(bmc.revenue)}</div></div>` : ''}
+        ${bmc.costs      ? `<div class="bmc-summary-item"><div class="bsi-label">💰 Cost Structure</div><div class="bsi-text">${esc(bmc.costs)}</div></div>` : ''}
+        ${bmc.channels   ? `<div class="bmc-summary-item"><div class="bsi-label">📣 Channels</div><div class="bsi-text">${esc(bmc.channels)}</div></div>` : ''}
+        ${bmc.relationships ? `<div class="bmc-summary-item"><div class="bsi-label">💬 Relationships</div><div class="bsi-text">${esc(bmc.relationships)}</div></div>` : ''}
+      </div>
+    </div>
+
+    <!-- PRIORITIES -->
+    <div class="syn-section">
+      <h3>🎯 Strategic Priorities — Where to Focus</h3>
+      ${priorities.length > 0 ? `
+        <p style="font-size:0.86rem;color:var(--text-muted);margin-bottom:14px">Based on your assessment, the following areas represent the most significant opportunities for improvement:</p>
+        ${priorities.slice(0,5).map((p,i) => `
+          <div class="priority-card">
+            <div class="priority-label">Priority ${i+1} · ${p.domain}${p.score !== null ? ' (score: ' + p.score.toFixed(1) + '/5)' : ''}</div>
+            <p>${p.reco}</p>
+          </div>`).join('')}
+      ` : `
+        <div class="good-card">
+          <p>Your assessment indicates strong management practices across all domains. The priority now is to sustain these foundations while using your strategic theory to identify where your distinctive assets create the greatest opportunity for further distinctiveness and impact.</p>
+        </div>
+      `}
+    </div>`;
+
+  document.getElementById('synthesisCard').innerHTML = html;
+
+  // Radar chart
+  const hasWMS = Object.values(scores).some(s => s !== null);
+  if (hasWMS) {
+    setTimeout(() => {
+      const canvas = document.getElementById('radarCanvas');
+      if (!canvas) return;
+      if (radarChart) { radarChart.destroy(); radarChart = null; }
+      radarChart = new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: ['Operations', 'Performance\nMonitoring', 'Target\nSetting', 'Talent\nManagement'],
+          datasets: [{
+            label: 'Score',
+            data: Object.keys(WMS).map(k => scores[k] || 0),
+            backgroundColor: 'rgba(26,61,110,0.14)',
+            borderColor: '#1a3d6e',
+            borderWidth: 2,
+            pointBackgroundColor: '#1a3d6e',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 5,
+              ticks: { stepSize: 1, font: { size: 9 } },
+              pointLabels: { font: { size: 10 } }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }, 120);
+  }
+}
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function val(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtDate(ds) {
+  if (!ds) return '';
+  try {
+    const d = new Date(ds + 'T12:00:00');
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+  } catch(e) { return ds; }
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionDate').value = today;
+  renderProgress();
+});
+</script>
+</body>
+</html>
